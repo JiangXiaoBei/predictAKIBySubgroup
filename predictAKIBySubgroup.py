@@ -1,46 +1,13 @@
 import os
 import pandas as pd
 import numpy as np
+import pickle
 
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.model_selection import KFold
 from sklearn.metrics import roc_auc_score
+from sklearn import metrics
 
-"""
-DataProccessor：一个读取指定目录下pkl格式的AKI数据处理器。pkl数据的格式见<DataReader.py>。
-    可获取rawAKIData、将大类特征全部展开后的AKIData，也可以获取仅含有不可变数据的ADIData（filteredAKIData）
-    
-    DataProccessor(AKIDataDir):
-        创建一个DataProcessor对象，传入要读取的AKIData目录，将自动读取该目录下全部pkl文件（包括子文件中的）
-        【输入】目标AKIData目录
-    
-    setAKIDaDir(AKIDataDir)
-        设置需要读取的AKIData目录。设置后会销毁已经读取的数据，并重新载入新目录下的数据
-        【从】目标AKIData目录
-    
-    getAKIDaDir()
-        获取目标AKIData目录
-        
-    getRawAKIData()
-        获取目标AKIData目录下的全部原生数据（多个pkl文件中的数据读取为1个）
-    
-    getAKIFeatureName()
-        DataProccessor对象内部维护了一个featureName数组，保存了全部7大类共3w多个特征的名字
-    
-    getAKIData(deleteEmptyCol=False)
-        获取处理后的AKIData，处理过程主要是将全部大类特征展开，将全部3w个子特征排列（不同的大类特征不要不同的处理）。
-        可选是否传入一个boolean类型参数，代表是否删除数据中的空列（即全部样本的该列值都相同，对决策树预测建模没有用）
-        【参数】
-            deleteEmptyCol，<boolean>，是否删除数据中的空列
-        【返回】
-            可用于决策树训练的AKI数据
-    
-   getFilteredData(deleteEmptyCol=False) 
-       获取只包含不可变特征的数据。
-       
-    【未完成工作】
-        1. 获取每个大类特征/展开后的大类特征数据
-"""
 class DataProccessor:
     def __init__(self, AKIDataDir):
         self.__demoSubFeatureNum = 4
@@ -48,16 +15,12 @@ class DataProccessor:
         self.__labSubFeatureNum = 817
         self.__ccsSubFeatureNum = 2621
         self.__pxSubFeatureNum = 15606
-        self.__medSubFeatureNum = 11538
+        self.__medSubFeatureNum = 11539
         self.__incompAKIFeatureName = None
         self.__AKIFeatureName = None
         
         self.setAKIDaDir(AKIDataDir)
     
-    """
-    设置目标AKI数据目录。如果DataGenerator已经读取过一个目录下的数据，设置新目录后将会加载新数据
-    【输入】想要读取的AKI数据目录（目录要求同创建DataGenerator对象）
-    """
     def setAKIDaDir(self, AKIDataDir):
         self.__AKIDataDir = AKIDataDir
         self.__rawAKIData = None
@@ -94,11 +57,7 @@ class DataProccessor:
         AKIData.drop(markedCols, axis=1, inplace=True)
         AKIData = pd.concat([appendData, AKIData], axis=1)
         return AKIData
-        
-    
-    """
-    获取AKI数据（样本中的无用列被去除，无用列指的是全部样本的该列值相同）
-    """
+
     def getAKIData(self, deleteEmptyCol=False):
         markedIndex = []
         if self.__AKIData is None:
@@ -114,13 +73,6 @@ class DataProccessor:
                     markedIndex.append(column)
         return self.__AKIData.drop(markedIndex, axis=1, inplace=False)
     
-    
-    """
-    获取AKIData，抽取出其中不可变部分：
-        1. 全部人口统计学（4，Age、Hispanic、Race、Sex）
-        2. 生命体征（6，HT、WT、ORIGINAL_BMI、Smoking、TOBACCO、TOBACCO_TYPE）
-        3. 全部并发症（280）【存疑，部分入院后并发症是否可以作为可改变因素？】
-    """
     def getFilteredData(self, deleteEmptyCol=False):
         markedIndex = []
         if self.__filteredAKIData is None:
@@ -131,13 +83,7 @@ class DataProccessor:
                 if (self.__filteredAKIData[column].nunique() == 1):
                     markedIndex.append(column)
         return self.__filteredAKIData.drop(markedIndex, axis=1, inplace=False)
-            
-    
-    """ 
-    【输入】保存所有结构化后数据的目录。预处理保存好的数据。要求AKIDataDir下只存在由<dataHelper.py>所处理而得到的pkl文件
-        （处理后得到数据的格式参见dataHelper.py）
-    【输出】全部结构化的数据，一张pandas.DataFrame表，包含7个大类特征（大类特征中包含子特征，但是没有分割）
-    """
+
     def __initRawAKIData(self):
         rawAKIdata = []
         for fileName in os.listdir(self.__AKIDataDir):
@@ -146,10 +92,6 @@ class DataProccessor:
         self.__rawAKIData = pd.DataFrame(rawAKIdata)
         self.__rawAKIData.columns = ['demo', 'vital', 'lab', 'comorbidity', 'procedure', 'med', 'AKI_label']
 
-    """
-    【输入】无
-    【输出】全部大类展开后的特征名，按照'demo', 'vital', 'lab', 'comorbidity', 'procedure', 'med', 'AKI_label'的顺序排列
-    """
     def __initAKIFeatureName(self):
         self.__AKIFeatureName = []
         self.__AKIFeatureName.extend(["DEMO_age", "DEMO_hispanic", "DEMO_race", "DEMO_sex"])
@@ -168,18 +110,11 @@ class DataProccessor:
                                "VITAL_tabacco", "VITAL_tabaccoType"])
         self.__incompAKIFeatureName.extend(["CCS_" + str(i) for i in range(1, self.__ccsSubFeatureNum+1)])
         self.__incompAKIFeatureName.append("Label")
-    
-    
-    """
-    【输入】一个格式为[]
-    设定要抽取的列表（一级列表、二级列表），将不可变特征抽取出来。
-    1. 全部人口统计学（4，Age、Hispanic、Race、Sex）
-    2. 生命体征（5，HT、WT、ORIGINAL_BMI、TOBACCO、TOBACCO_TYPE）
-    3. 全部并发症（280）
-    """ 
+
     def __getPreprocessedDataFrom(self, aPatientRawData):
         # 获取发病日期。([6]表示提取第7个大类特征，[0]表示第1条记录)
         label, firstAKITime = aPatientRawData.T[6][0] 
+        firstAKITime = float(firstAKITime)
         label = 1 if label!="0" else 0
         
         [demo, vital, lab, comorbidity, procedure, med, AKI_label] = [item for item in aPatientRawData.T]
@@ -198,6 +133,7 @@ class DataProccessor:
                 if len(recode) < 2:
                      recode = ['0', 0]       # 当没有时间记录，说明患者在这一项上为空。直接赋0
                 value, time = recode 
+                time = float(time)
                 timeInterval = firstAKITime - time
                 if timeInterval>0 and timeInterval<minTimeInterval:
                     minTimeInterval = timeInterval
@@ -266,81 +202,135 @@ class DataProccessor:
             medData[subFeatureIndex-1] = targetValue  # 在特征表中lab是从1开始的，故减去1
         return demoData + vitalData + labData + ccsData + pxData + medData + [label] # TODO 这里会把全部元素作为字符串（因为元素中存在字符串）
 
-# ======================================================================================================================
-# ==================================================开始======================================================================
-# ======================================================================================================================
-AKIDataDir = "/home/xinhos/Desktop/AKI_newdata1/"
-dataProccessor = DataProccessor(AKIDataDir)
-data = dataProccessor.getAKIData(deleteEmptyCol=True)
-dataFiltered = dataProccessor.getFilteredData(deleteEmptyCol=True)
+print("=========================================== begin work =======================================================")
+home = "/panfs/pfs.local/work/liu/xzhang_sta/huxinhou"
+# home = "/home/xinhos"
+arrayDataDir = os.path.join(home, "data/AKIData/dataArray")
+dataDir = os.path.join(home, arrayDataDir, "data.pkl") 
+dataFilteredDir = os.path.join(home, arrayDataDir, "dataFiltered.pkl")
+if os.path.exists(dataDir):
+    print("Read the data saved under ", arrayDataDir)
+    data = pd.read_pickle(dataDir)
+    dataFiltered = pd.read_pickle(dataFilteredDir)
+else :
+    AKIDataDir = os.path.join(home, "data/AKIData/listData/")
+    dataProccessor = DataProccessor(AKIDataDir)
+    data = dataProccessor.getAKIData(deleteEmptyCol=True)
+    dataFiltered = dataProccessor.getFilteredData(deleteEmptyCol=True)
 
-data = DataProccessor.preprocess(data)
-dataFiltered = DataProccessor.preprocess(dataFiltered)
-featureName = dataFiltered.columns
+    data = DataProccessor.preprocess(data)
+    dataFiltered = DataProccessor.preprocess(dataFiltered)
+
+    print("=============================================================================================================")
+    print("Array data saving")
+    data.to_pickle(os.path.join(arrayDataDir, "data.pkl"))
+    dataFiltered.to_pickle(os.path.join(arrayDataDir, "dataFiltered.pkl"))
+    print("Array data saved")
+
+featureName = dataFiltered.columns[:-1]  # 去除label
 data, dataFiltered = data.values, dataFiltered.values
 
+# 删除数据中带有nan、inf的行
+print("============= data ==============")
+print("begin", data.shape)
+infIndex = np.isinf(data).any(axis=1)
+nanIndex = np.isnan(data).any(axis=1)
+data = data[~infIndex, :]
+data = data[~nanIndex, :]
+print("end", data.shape)
+print("============= dataFiltered ================")
+print("begin", dataFiltered.shape)
+infIndex = np.isinf(dataFiltered).any(axis=1)
+nanIndex = np.isnan(dataFiltered).any(axis=1)
+dataFiltered = dataFiltered[~infIndex, :]
+dataFiltered = dataFiltered[~nanIndex, :]
+print("end", dataFiltered.shape)
+
+
 # 1. 获得基线AUC
+print("=============================================== get base auc ==================================================")
+aucList = []
 kfold = KFold(n_splits=10)
 for trainDataIndex, testDataIndex in kfold.split(data):
     trainData, testData = data[trainDataIndex, :], data[testDataIndex, :]
-    trainX, trainY = trainData[:, :-2], trainData[:, -1]
-    testX, testY = testData[:, :-2], testData[:, -1]
+    trainX, trainY = trainData[:, :-1], trainData[:, -1]
+    testX, testY = testData[:, :-1], testData[:, -1]
     GBDTClf = GradientBoostingClassifier().fit(trainX, trainY)
     predictedTestY = GBDTClf.predict(testX)
     auc = roc_auc_score(testY, predictedTestY)
+    aucList.append(auc)
 baseAUC = np.average(aucList)
+print("aucList:", aucList)
+print("baseAUC：", baseAUC)
 
 # 2. 使用CART进行亚组分组，并获取亚组
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.tree import export_graphviz
 subgroups = {}
-trainX, trainY = dataFiltered[:, :-2], dataFiltered[:, -1]
-
+trainX, trainY = dataFiltered[:, :-1], dataFiltered[:, -1]
+print("============================================= get subgroup ==================================================")
 param = {
     "criterion": "gini",
-    "min_samples_leaf": 50,
+    "min_samples_leaf": 200,
     "min_samples_split": 500
 }
-cartClf = DecisionTreeClassifier(**param)
-cartClf.fit(trainX, trainY)
+cartClf = DecisionTreeClassifier(**param).fit(trainX, trainY)
 
 # 保存决策树结构
-with open("./tree-struct.dot", "w", encoding="utf-8") as file:
+dotFilePath = os.path.join(home, "data/AKIData/dataArray", "tree.dot")
+with open(dotFilePath, "w", encoding="utf-8") as file:
     file = export_graphviz(cartClf, out_file = file, feature_names = featureName, 
                            filled = True, rounded = True, special_characters = True)
+print("Save location of decision tree structure：", dotFilePath)                           
 # 获得亚组
-subgroupIndex = cartClf.apply(dataFiltered)
+subgroupIndex = cartClf.apply(dataFiltered[:, :-1])
 for sampleIndex, groupIndex in enumerate(subgroupIndex):
-    if subgroups.get(groupIndex) == None:
+    if subgroups.get(groupIndex) is None:
         subgroups[groupIndex] = []
     subgroups[groupIndex].append(sampleIndex)
 
+print("Number of subgroups：", len(subgroups))
+tmpSavePath = os.path.join(home, "data/AKIData/dataArray", "subgroups.pkl")
+with open(tmpSavePath, "wb") as file:
+    pickle.dump(subgroups, file)
+print("Save path of subgroup data:", tmpSavePath)
+
 # 3. 在得到的每个亚组上使用GBDT建模，并计算总体AUC，以及输出AUC变化情况
+print("================================================ get subgroup auc ==============================================")
 overallAUC = 0.0
-subgroupAUCs = []
-kflod = KFold(n_splits=3)
-for _, subgroup in subgroups.items():
+subgroupAUCs = {}
+preList = []
+testList = []
+kfold3 = KFold(n_splits=3)
+for subgroupName, subgroup in subgroups.items():
+    print("build model for subgroup", "%.3f"%subgroupName, "(", len(subgroup),")", end="")
     subgroup = np.array(subgroup)
     subgroupData = data[subgroup]
-    for trainDataIndex, testDataIndex in kfold.split(subgroupData):
+    aucList = []
+    for trainDataIndex, testDataIndex in kfold3.split(subgroupData):
         trainData, testData = subgroupData[trainDataIndex, :], subgroupData[testDataIndex, :]
-        trainX, trainY = trainData[:, :-2], trainData[:, -1]
-        testX, testY = testData[:, :-2], testData[:, -1]
+        trainX, trainY = trainData[:, :-1], trainData[:, -1]
+        testX, testY = testData[:, :-1], testData[:, -1]
         GBDTClf = GradientBoostingClassifier().fit(trainX, trainY)
         predictedTestY = GBDTClf.predict(testX)
-        auc = roc_auc_score(testY, predictedTestY)
-    baseAUC = np.average(aucList)
-    
+#         fpr, tpr, thresholds = metrics.roc_curve(testY, predictedTestY, pos_label=2)
+#         auc = metrics.auc(fpr, tpr)
+        # 在小样本情况下，有可能预测的是完全一样的，会出现只有一个类的情况，此时调用roc_auc_score会出错
+        auc = metrics.roc_auc_score(testY, predictedTestY)         
+        aucList.append(auc)
+    subgroupAUCs[subgroupName] = aucList
+    print("average AUC:", np.average(aucList), ",AUC value list：", ["%.4f"%auc for auc in aucList])
+ 
 # 4. 输出亚组信息&保存数据
-print("==========================================================================")
-print("亚组个数：", len(subgroups))
+print("================================================= print info =================================================")
 count = 0
-for subgroupName, subgroup in subgroups.items():
-    count += 1
-    sign = ''
-    if count % 5 == 0:
-        sign = '\n'
-    print("\t亚组" + str(subgroupName).zfill(3) + "：" + str(len(subgroup)) 
-          + "auc："+str(subgroupAUCs[subgroupName]), end=sign)
-print("总体AUC：", overallAUC)
-print("==========================================================================")
+weights = []
+size = len(dataFiltered)
+for subgroupName, subgroupAUC in subgroupAUCs.items():
+    subgroupSize = len(subgroups[subgroupName])
+    weight = float(subgroupSize)/float(size)
+    print("size:", subgroupSize, "weight:", "%.4f"%weight, "auc:", "%.4f"%np.average(subgroupAUC), "value:", "%.4f"%(weight*np.average(subgroupAUC)))
+    overallAUC += weight*np.average(subgroupAUC)
+print("overall AUC：", overallAUC)
+print("============================================ end work ========================================================")
+print("=========================================== begin work =======================================================")
