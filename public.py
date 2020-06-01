@@ -312,7 +312,7 @@ def GBDT(X, Y, gbdtParams, treeParams, cv=3, logger):
 
     treeParams = gbdtParams.update(gbdtParams)
     logger.info("training model with treeParams by GridSearchCV")
-    secondGrid = GridSearchCV(estimator=GradientBoostingClassifier(), param_grid=params, refit="roc_auc",
+    secondGrid = GridSearchCV(estimator=GradientBoostingClassifier(), param_grid=treeParams, refit="roc_auc",
                 n_jobs=-1, scoring=['roc_auc', 'f1', 'accuracy', 'precision', 'recall'], cv=10)
     secondGrid.fit(X, Y)
 

@@ -42,8 +42,9 @@ def beginWork(home, logger):
     logger.info("==================================".center(CONSTANT.logLength, "="))
 
 # home = "/panfs/pfs.local/work/liu/xzhang_sta/huxinhou"
+# home = "/home/xinhos/PythonProjects"
 if __name__ == "__main__":
-    home = "/home/xinhos/PythonProjects"
+    home = "../../"
     constant = CONSTANT(home)
     logFilePath = os.path.join(constant.getLogDir(), "02-getBaseAUC.log")
     allLogPath = os.path.join(constant.getLogDir(), "00-allLog.log")

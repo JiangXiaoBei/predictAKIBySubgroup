@@ -61,8 +61,9 @@ def beginWork(home, subgroupName, logger):
     logger.info("======================================".center(CONSTANT.logLength, "="))
 
 # home = "/panfs/pfs.local/work/liu/xzhang_sta/huxinhou"
+# home = "/home/xinhos/PythonProjects"
 if __name__ == "__main__":
-    home = "/home/xinhos/PythonProjects"
+    home = "../../"
     constant = CONSTANT(home)
     subgroupName = sys.argv[0]
     curSubgroupsDir = os.path.join(home, subgroupName)
