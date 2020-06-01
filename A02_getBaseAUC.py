@@ -27,7 +27,7 @@ def beginWork(home, logger):
         "max_depth": [10, 50],
         "min_samples_split": [5, 10]
     }
-    firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 10, logger)
+    firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 3, logger) # TODO 测试代码正确性，训练时cv改回10
 
     logger.info("first stage GBDT(with gbdt param) model info:")
     showGridMetrics(firstGrid, "GBDT", logger)
