@@ -5,6 +5,9 @@ import logging
 import pandas as pd
 import numpy as np
 
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import GradientBoostingClassifier
+
 class DataProccessor:
     def __init__(self, AKIDataDir):
         self.__demoSubFeatureNum = 4
@@ -301,7 +304,7 @@ def showGridMetrics(grid, modelName, logger):
     logger.info("auc:{0}, f1:{1}, accuracy:{2}, precition:{3}, recall:{4}"
                 .format(scores['roc_auc'], scores['f1'], scores['accuracy'], scores['precision'], scores['recall']))
 
-def GBDT(X, Y, gbdtParams, treeParams, cv=3):
+def GBDT(X, Y, gbdtParams, treeParams, cv=3, logger):
     logger.info("training model with GBDTParams by GridSearchCV")
     firstGrid = GridSearchCV(estimator=GradientBoostingClassifier(), param_grid=gbdtParams, refit="roc_auc",
                 n_jobs=-1, scoring=['roc_auc', 'f1', 'accuracy', 'precision', 'recall'], cv=cv)

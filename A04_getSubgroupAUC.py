@@ -44,7 +44,7 @@ def beginWork(home, subgroupName, logger):
         # 使用网格搜索，3折交叉验证
         subgroupData = data[np.array(subgroupItemIndex)]
         X, Y = subgroupData[:, :-1], subgroupData[:, -1]
-        firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 3)
+        firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 3, logger)
         
         size = len(subgroupData)
         sizeInfo = str(size) + "(" + str(float(size)/float(allDataSize)) + ")"
