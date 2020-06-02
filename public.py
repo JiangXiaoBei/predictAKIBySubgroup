@@ -63,12 +63,12 @@ class DataProccessor:
         data, featureName = AKIData.values, AKIData.columns
 
         # 处理NaN、INF（只保留非nan、非inf的行）
-        infIndex = np.isinf(AKIData).any(axis=1)
-        nanIndex = np.isnan(AKIData).any(axis=1)
-        AKIData = AKIData[~infIndex, :]
-        AKIData = AKIData[~nanIndex, :]
+        infIndex = np.isinf(data).any(axis=1)
+        nanIndex = np.isnan(data).any(axis=1)
+        data = data[~infIndex, :]
+        data = data[~nanIndex, :]
 
-        return AKIData, featureName
+        return data, featureName
 
     def getAKIData(self, deleteEmptyCol=False):
         markedIndex = []
