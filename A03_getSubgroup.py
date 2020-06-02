@@ -45,13 +45,13 @@ def beginWork(home, logger):
         logger.info(param)
                             
         # 获得并保存亚组
-        subgroupIndex = clf.apply(X)
-        for sampleIndex, groupIndex in enumerate(subgroupIndex):
+        itemIndex = clf.apply(X)
+        for sampleIndex, groupIndex in enumerate(itemIndex):
             if subgroups.get(groupIndex) is None:
                 subgroups[groupIndex] = []
             subgroups[groupIndex].append(sampleIndex)
         with open(subgroupsSavedPath, "wb") as file:
-            pickle.dump(subgroupsSavedPath, file)
+            pickle.dump(subgroups, file)
         logger.info("the number of subgroup:{}".format(len(subgroups)))
         logger.info("subgroup data saved in {}".format(subgroupsSavedPath))
         logger.info("{0}{1}".format("subgroup index".center(20), "subgroup size".format(20)))
