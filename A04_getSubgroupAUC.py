@@ -18,7 +18,7 @@ def beginWork(home, subgroupName, logger):
     logger.info("load subgroup in {0}".format(subgroupsPath))
 
     dataPath = constant.getDataPath()
-    data = pd.read_pickle(dataPath).values
+    data, _ = loadData(dataPath, logger)
     allDataSize = len(data)
     akiSize, noAKISize = np.sum(data[:, -1]==1), np.sum(data[:, -1]==0)
     akiRate, noAKIRate = float(akiSize)/float(allDataSize), float(noAKISize)/float(allDataSize)
