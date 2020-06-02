@@ -65,8 +65,8 @@ def beginWork(home, subgroupName, logger):
 if __name__ == "__main__":
     home = "/home/huxinhou/WorkSpace_XH"
     constant = CONSTANT(home)
-    subgroupName = sys.argv[0]
-    curSubgroupsDir = os.path.join(home, constant.getSavedDataDir(),subgroupName)
+    subgroupName = sys.argv[1]
+    curSubgroupsDir = os.path.join(home, constant.getSavedDataDir(), subgroupName)
     logFilePath = os.path.join(curSubgroupsDir, "getSubgroupAUC.log")
     allLogPath = os.path.join(curSubgroupsDir, "allLog.log")
     logger = getLogger(logFilePath, allLogPath)
