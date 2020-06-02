@@ -20,8 +20,8 @@ def beginWork(home, logger):
     X, Y = data[:, :-1], data[:, -1]
 
     gbdtParams = {
-        "n_estimators": 250,
-        "learning_rate": 0.1
+        "n_estimators": [250],
+        "learning_rate": [0.1]
     }
     treeParams = {
         "max_depth": [10, 50],
