@@ -298,11 +298,15 @@ def showDataInfo(dataArr, logger):
     logger.info("{0}{1}".format("NOAKI".ljust(5), str(np.sum(dataArr[:, -1]==0)).center(17)))
 
 def showGridMetrics(grid, modelName, logger):
-    scores = grid.scorer_
+    bestIndex = grid.best_index_
+    results = grid.cv_results_["mean_test_score"]
+    
     bestGbdtParams = grid.best_params_
     logger.info("best {0} parameter:{1}".format(modelName, bestGbdtParams))
     logger.info("auc:{0}, f1:{1}, accuracy:{2}, precition:{3}, recall:{4}"
-                .format(scores['roc_auc'], scores['f1'], scores['accuracy'], scores['precision'], scores['recall']))
+                .format(results['mean_test_roc_auc'][bestIndex], results['mean_test_f1'][bestIndex], 
+                results['mean_test_accuracy'][bestIndex], results['mean_test_precision'][bestIndex], 
+                results['mean_test_recall'][bestIndex]))
 
 def GBDT(X, Y, gbdtParams, treeParams, cv, logger):
     logger.info("training model with GBDTParams by GridSearchCV")
