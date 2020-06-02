@@ -16,11 +16,10 @@ def beginWork(home, logger):
 
     subgroupSizes = [8, 16, 32, 64]
     cartModelDir = constant.getCartModelDir()
-
+    shutil.rmtree(cartModelDir)
+    os.makedirs(cartModelDir)
     for subgroupSize in subgroupSizes:
         curCartModelDir = os.path.join(cartModelDir, "subgroup-"+str(subgroupSize))
-        if os.path.exists(curCartModelDir):
-            shutil.rmtree(curCartModelDir)
         os.makedirs(curCartModelDir)
         dotFilePath = os.path.join(curCartModelDir, "dot.dot")
         paramsTxtPath = os.path.join(curCartModelDir, "params.txt")
@@ -55,9 +54,9 @@ def beginWork(home, logger):
             pickle.dump(subgroupsSavedPath, file)
         logger.info("the number of subgroup:{}".format(len(subgroups)))
         logger.info("subgroup data saved in {}".format(subgroupsSavedPath))
-        logger.info("{0}{1}".format("subgroup index".center(15), "subgroup size".format(15)))
+        logger.info("{0}{1}".format("subgroup index".center(20), "subgroup size".format(20)))
         for subgroupName, subgroup in subgroups.items():
-            logger.info("{0}{1}".format(str(subgroupName).center(15), str(len(subgroup)).center(15)))
+            logger.info("{0}{1}".format(str(subgroupName).center(20), str(len(subgroup)).center(20)))
     logger.info("==================================".center(CONSTANT.logLength, "="))
 
 # home = "/panfs/pfs.local/work/liu/xzhang_sta/huxinhou"
