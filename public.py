@@ -45,6 +45,9 @@ class DataProccessor:
             self.__initIncompAKIFeature()
         return self.__incompAKIFeatureName
     
+    """
+    对传入数据进行预处理（离散变量哑变量化、删除NAN、INF），返回ndarray数组格式
+    """
     def preprocess(AKIData): 
         appendData = pd.DataFrame()
         markedCols = []
@@ -329,9 +332,10 @@ def GBDT(X, Y, gbdtParams, treeParams, cv, logger):
 def loadData(dataPath, logger):
     logger.info("load data in{}".format(dataPath))
     data = pd.read_pickle(dataPath)
+    featureName = data.columns
     data = DataProccessor.preprocess(data)
     showDataInfo(data, logger)
-    return data
+    return data, featureName
 
 
 """

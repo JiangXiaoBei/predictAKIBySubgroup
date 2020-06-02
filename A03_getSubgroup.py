@@ -10,9 +10,11 @@ from sklearn.tree import export_graphviz
 def beginWork(home, logger):
     constant = CONSTANT(home)
     logger.info("========== get subgroup ==========".center(CONSTANT.logLength, "="))
-    data = loadData(constant.getDataFilteredPath(), logger)
+    data, featureName = loadData(constant.getDataFilteredPath(), logger)
     X, Y = data[:, :-1], data[:, -1]
     size = X.shape[0]
+    print(featureName)
+    return
 
     subgroupSizes = [8, 16, 32, 64]
     cartModelDir = constant.getCartModelDir()

@@ -16,7 +16,7 @@ def beginWork(home, logger):
     baseModelMetricsPath = constant.getBaseModelMetricsPath()
     logger.info("========== get base auc ==========".center(CONSTANT.logLength, "="))
     
-    data = loadData(dataDir, logger)
+    data, _ = loadData(dataDir, logger)
     X, Y = data[:, :-1], data[:, -1]
 
     gbdtParams = {
