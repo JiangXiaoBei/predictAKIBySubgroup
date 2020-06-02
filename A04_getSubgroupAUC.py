@@ -28,7 +28,7 @@ def beginWork(home, subgroupName, logger):
 
     overallAUC, subgroupAUCs, subgroupWeights = 0.0, [], []
     kfold3 = KFold(n_splits=3)
-    logging.info("{0}{1}{2}{3}{4}{5}"
+    logger.info("{0}{1}{2}{3}{4}{5}"
         .format("subgroupName".center(18), "size(rate)".center(14), "NOAKI/AKI".center(14), 
                 "AKI rate".center(14), "weight".center(10), "auc".center(8)))
     
