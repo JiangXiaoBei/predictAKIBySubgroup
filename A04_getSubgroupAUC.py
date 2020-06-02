@@ -31,13 +31,12 @@ def beginWork(home, subgroupName, logger):
     logging.info("{0}{1}{2}{3}{4}{5}"
         .format("subgroupName".center(18), "size(rate)".center(14), "NOAKI/AKI".center(14), 
                 "AKI rate".center(14), "weight".center(10), "auc".center(8)))
+    
     gbdtParams = {
         "n_estimators": [100, 300],
         "learning_rate": [0.1, 0.5, 0.8]
     }
     treeParams = {
-        "n_estimators": grid.best_params_["n_estimators"],
-        "learning_rate": grid.best_params_["learning_rate"],
         "max_depth": [10, 50],
         "min_samples_split": [5, 10]
     }
