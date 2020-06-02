@@ -59,7 +59,8 @@ class DataProccessor:
                 appendData = pd.concat([appendData, newCols], axis=1)
                 markedCols.append(column)
         AKIData.drop(markedCols, axis=1, inplace=True)
-        AKIData = pd.concat([appendData, AKIData], axis=1).values
+        AKIData = pd.concat([appendData, AKIData], axis=1)
+        data, featureName = AKIData.values, AKIData.columns
 
         # 处理NaN、INF（只保留非nan、非inf的行）
         infIndex = np.isinf(AKIData).any(axis=1)
@@ -67,7 +68,7 @@ class DataProccessor:
         AKIData = AKIData[~infIndex, :]
         AKIData = AKIData[~nanIndex, :]
 
-        return AKIData
+        return AKIData, featureName
 
     def getAKIData(self, deleteEmptyCol=False):
         markedIndex = []
@@ -332,8 +333,7 @@ def GBDT(X, Y, gbdtParams, treeParams, cv, logger):
 def loadData(dataPath, logger):
     logger.info("load data in{}".format(dataPath))
     data = pd.read_pickle(dataPath)
-    featureName = data.columns
-    data = DataProccessor.preprocess(data)
+    data, featureName = DataProccessor.preprocess(data)
     showDataInfo(data, logger)
     return data, featureName
 
