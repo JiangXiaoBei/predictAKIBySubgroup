@@ -300,13 +300,18 @@ def showDataInfo(dataArr, logger):
 def showGridMetrics(grid, modelName, logger):
     bestIndex = grid.best_index_
     results = grid.cv_results_
-    
+    bestAuc = grid.best_score_
     bestGbdtParams = grid.best_params_
+    
     logger.info("best {0} parameter:{1}".format(modelName, bestGbdtParams))
-    logger.info("auc:{0}, f1:{1}, accuracy:{2}, precition:{3}, recall:{4}"
-                .format(results['mean_test_roc_auc'][bestIndex], results['mean_test_f1'][bestIndex], 
-                results['mean_test_accuracy'][bestIndex], results['mean_test_precision'][bestIndex], 
-                results['mean_test_recall'][bestIndex]))
+    logger.info("auc:{0}, f1:{1}, accuracy:{2}, precition:{3}, recall:{4}".format(
+        round(results['mean_test_roc_auc'][bestIndex], 2), 
+        round(results['mean_test_f1'][bestIndex], 2),
+        round(results['mean_test_accuracy'][bestIndex], 2),
+        round(results['mean_test_precision'][bestIndex], 2),
+        round(results['mean_test_recall'][bestIndex], 2)
+    ))
+    logger.info("best auc:{0}".format(bestAuc))
 
 def GBDT(X, Y, gbdtParams, treeParams, cv, logger):
     logger.info("training model with GBDTParams by GridSearchCV")
