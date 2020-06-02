@@ -33,12 +33,12 @@ def beginWork(home, subgroupName, logger):
                 "AKI rate".center(14), "weight".center(10), "auc".center(8)))
     
     gbdtParams = {
-        "n_estimators": [100, 300],
-        "learning_rate": [0.1, 0.5, 0.8]
+        "n_estimators": [20, 50, 100],
+        "learning_rate": [0.05, 0.1, 0.5]
     }
     treeParams = {
-        "max_depth": [10, 50],
-        "min_samples_split": [5, 10]
+        "max_depth": [3, 5, 10, 50],
+        "min_samples_split": [2, 5, 10]
     }
     for subgroupName, subgroupItemIndex in subgroups.items():
         # 使用网格搜索，3折交叉验证
@@ -55,7 +55,7 @@ def beginWork(home, subgroupName, logger):
         logger.info("{0}{1}{2}{3}{4}{5}"
             .format(str(subgroupName).center(18), sizeInfo.center(14), noaki_aki.center(14), 
                     str(AKIRate).center(14), str(weight).center(10), str(auc).center(8)))
-                    
+
         overallAUC += auc*weight
 
     logger.info("all subgroups are modeled, the overall auc is:{0}".format(overallAUC))
