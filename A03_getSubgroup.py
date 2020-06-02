@@ -56,8 +56,8 @@ def beginWork(home, logger):
         logger.info("the number of subgroup:{}".format(len(subgroups)))
         logger.info("subgroup data saved in {}".format(subgroupsSavedPath))
         logger.info("{0}{1}".format("subgroup index".center(15), "subgroup size".format(15)))
-        for subgroupName, subgroupSize in subgroups.items():
-            logger.info("{0}{1}".format(str(subgroupName).center(15), str(subgroupSize).center(15)))
+        for subgroupName, subgroup in subgroups.items():
+            logger.info("{0}{1}".format(str(subgroupName).center(15), str(len(subgroup)).center(15)))
     logger.info("==================================".center(CONSTANT.logLength, "="))
 
 # home = "/panfs/pfs.local/work/liu/xzhang_sta/huxinhou"
