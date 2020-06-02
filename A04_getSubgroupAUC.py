@@ -6,6 +6,7 @@ import pandas as pd
 from public import *
 from sklearn.model_selection import GridSearchCV 
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import KFold
 
 def beginWork(home, subgroupName, logger):
     logger.info("========== get subgroup auc ==========".center(CONSTANT.logLength, "="))
@@ -19,11 +20,11 @@ def beginWork(home, subgroupName, logger):
     dataPath = constant.getDataPath()
     data = pd.read_pickle(dataPath).values
     allDataSize = len(data)
-    akiSize, noAKISize = np.sum(data[:, -1]==1), np.num(data[:, -1]==0)
-    akiRate, noAKIRate = float(akiSize)/float(size), float(noAKISize)/float(size)
+    akiSize, noAKISize = np.sum(data[:, -1]==1), np.sum(data[:, -1]==0)
+    akiRate, noAKIRate = float(akiSize)/float(allDataSize), float(noAKISize)/float(allDataSize)
     logger.info("load data in {0}".format(dataPath))
     logger.info("size:{0}, AKI:{1}({2}), NOAKI:{3}({4})"
-        .format(data.shape[0], akiSize, akiRate, noAKISize, noAKIRate))
+        .format(data.shape[0], akiSize, akiRate, round(noAKISize), round(noAKIRate)))
 
     overallAUC, subgroupAUCs, subgroupWeights = 0.0, [], []
     kfold3 = KFold(n_splits=3)
