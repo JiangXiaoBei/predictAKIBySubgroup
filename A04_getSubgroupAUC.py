@@ -24,7 +24,7 @@ def beginWork(home, subgroupName, logger):
     akiRate, noAKIRate = float(akiSize)/float(allDataSize), float(noAKISize)/float(allDataSize)
     logger.info("load data in {0}".format(dataPath))
     logger.info("size:{0}, AKI:{1}({2}), NOAKI:{3}({4})"
-        .format(data.shape[0], akiSize, akiRate, round(noAKISize), round(noAKIRate)))
+        .format(data.shape[0], akiSize, round(akiRate, 4), noAKISize, round(noAKIRate, 4)))
 
     overallAUC, subgroupAUCs, subgroupWeights = 0.0, [], []
     kfold3 = KFold(n_splits=3)
@@ -50,8 +50,8 @@ def beginWork(home, subgroupName, logger):
         sizeInfo = str(size) + "(" + str(float(size)/float(allDataSize)) + ")"
         NOAKI, AKI = np.sum(subgroupData[:, -1]==0), np.sum(subgroupData[:, -1]==1)
         noaki_aki = str(NOAKI) + "/" + str(AKI)
-        AKIRate, weight = AKI/size, float(size)/float(allDataSize)
-        auc = str(secondGrid.scorer_['roc_auc'])
+        AKIRate, weight = round(AKI/size, 4), round(float(size)/float(allDataSize), 4)
+        auc = str(secondGrid.cv_results_['mean_test_roc_auc'][secondGrid.best_index_])
         logger.info("{0}{1}{2}{3}{4}{5}"
             .format(str(subgroupName).center(18), sizeInfo.center(14), noaki_aki.center(14), 
                     str(AKIRate).center(14), str(weight).center(10), str(auc).center(8)))
