@@ -51,10 +51,11 @@ def beginWork(home, subgroupName, logger):
         NOAKI, AKI = np.sum(subgroupData[:, -1]==0), np.sum(subgroupData[:, -1]==1)
         noaki_aki = str(NOAKI) + "/" + str(AKI)
         AKIRate, weight = round(AKI/size, 4), round(float(size)/float(allDataSize), 4)
-        auc = str(secondGrid.cv_results_['mean_test_roc_auc'][secondGrid.best_index_])
+        auc = round(secondGrid.cv_results_['mean_test_roc_auc'][secondGrid.best_index_], 4)
         logger.info("{0}{1}{2}{3}{4}{5}"
             .format(str(subgroupName).center(18), sizeInfo.center(14), noaki_aki.center(14), 
                     str(AKIRate).center(14), str(weight).center(10), str(auc).center(8)))
+                    
         overallAUC += auc*weight
 
     logger.info("all subgroups are modeled, the overall auc is:{0}".format(overallAUC))
