@@ -33,8 +33,6 @@ def beginWork(home, logger):
     showGridMetrics(firstGrid, "GBDT", logger)
     logger.info("second stage(with tree params) GBDT model info:")
     showGridMetrics(secondGrid, "GBDT(best tree)", logger)
-    with open(baseModelMetricsPath, "wb") as file:
-        pickle.dump(secondGrid.scorer_, file)
     with open(baseModelPath, "wb") as file:
         pickle.dump(secondGrid.best_estimator_, file)
     logger.info("base model saved in {0}".format(baseModelPath))

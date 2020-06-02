@@ -10,10 +10,9 @@ from sklearn.ensemble import GradientBoostingClassifier
 def beginWork(home, subgroupName, logger):
     logger.info("========== get subgroup auc ==========".center(CONSTANT.logLength, "="))
     constant = CONSTANT(home)
-    baseAUC = pickle.load(constant.getBaseModelMetricsPath())['roc_auc']
 
     subgroupsPath = os.path.join(home, subgroupName, "subgroups.pkl")
-    subgroups = pickle.load(subgroupsPath)
+    subgroups = pickle.load(subgroupsPath, "rb")
     logger.info("load subgroup in {0}".format(subgroupsPath))
 
     dataPath = constant.getDataPath()
@@ -22,8 +21,8 @@ def beginWork(home, subgroupName, logger):
     akiSize, noAKISize = np.sum(data[:, -1]==1), np.num(data[:, -1]==0)
     akiRate, noAKIRate = float(akiSize)/float(size), float(noAKISize)/float(size)
     logger.info("load data in {0}".format(dataPath))
-    logger.info("size:{0}, AKI:{1}({2}), NOAKI:{3}({4}), baseAUC:{5}"
-        .format(data.shape[0], akiSize, akiRate, noAKISize, noAKIRate, baseAUC))
+    logger.info("size:{0}, AKI:{1}({2}), NOAKI:{3}({4})"
+        .format(data.shape[0], akiSize, akiRate, noAKISize, noAKIRate))
 
     overallAUC, subgroupAUCs, subgroupWeights = 0.0, [], []
     kfold3 = KFold(n_splits=3)
