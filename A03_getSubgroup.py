@@ -51,10 +51,10 @@ def beginWork(home, logger):
             if subgroups.get(groupIndex) is None:
                 subgroups[groupIndex] = []
             subgroups[groupIndex].append(sampleIndex)
-        with open(subgroupsSavedPath, "w") as file:
+        with open(subgroupsSavedPath, "wb") as file:
             pickle.dump(subgroupsSavedPath, file)
-        logger.info("subgroup data saved in {}".format(subgroupsSavedPath))
         logger.info("the number of subgroup:{}".format(len(subgroups)))
+        logger.info("subgroup data saved in {}".format(subgroupsSavedPath))
         logger.info("{0}{1}".format("subgroup index".center(15), "subgroup size".format(15)))
         for subgroupName, subgroupSize in subgroups.items():
             logger.info("{0}{1}".format(str(subgroupName).center(15), str(subgroupSize).center(15)))

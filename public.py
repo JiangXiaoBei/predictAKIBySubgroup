@@ -60,7 +60,7 @@ class DataProccessor:
                 markedCols.append(column)
         AKIData.drop(markedCols, axis=1, inplace=True)
         AKIData = pd.concat([appendData, AKIData], axis=1)
-        data, featureName = AKIData.values, AKIData.columns
+        data, featureName = AKIData.values, AKIData.columns[:-1]
 
         # 处理NaN、INF（只保留非nan、非inf的行）
         infIndex = np.isinf(data).any(axis=1)
