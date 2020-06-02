@@ -20,12 +20,12 @@ def beginWork(home, logger):
     X, Y = data[:, :-1], data[:, -1]
 
     gbdtParams = {
-        # "n_estimators": [200, 300， 400],
-        # "learning_rate": [0.05, 0.1, 0.2]
+        "n_estimators": 250,
+        "learning_rate": 0.1
     }
     treeParams = {
-        # "max_depth": [10, 50],
-        # "min_samples_split": [5, 10]
+        "max_depth": [10, 50],
+        "min_samples_split": [5, 10]
     }
     firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 3, logger) # TODO 测试代码正确性，训练时cv改回10
 
@@ -55,8 +55,3 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("========== catch exception! ==========".center(CONSTANT.logLength, "="))
         logger.error(traceback.format_exc())
-
-"""
-笔记：
-    网格搜索时使用多个参数，返回的是make_scores()。如果需要使用的话，还需传入预测值、实际值
-"""
