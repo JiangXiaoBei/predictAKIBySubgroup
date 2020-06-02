@@ -53,7 +53,7 @@ def beginWork(home, subgroupName, logger):
         AKIRate, weight = AKI/size, float(size)/float(allDataSize)
         auc = str(secondGrid.scorer_['roc_auc'])
         logger.info("{0}{1}{2}{3}{4}{5}"
-            .format(subgroupName.center(18), sizeInfo.center(14), noaki_aki.center(14), 
+            .format(str(subgroupName).center(18), sizeInfo.center(14), noaki_aki.center(14), 
                     str(AKIRate).center(14), str(weight).center(10), str(auc).center(8)))
         overallAUC += auc*weight
 
