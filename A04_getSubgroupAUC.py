@@ -17,7 +17,7 @@ def beginWork(home, subgroupName, logger):
         subgroups = pickle.load(file)
     logger.info("load subgroup in {0}".format(subgroupsPath))
 
-    dataPath = constant.getDataPath()
+    dataPath = constant.getDataFilteredPath()
     data, _ = loadData(dataPath, logger)
     allDataSize = len(data)
     akiSize, noAKISize = np.sum(data[:, -1]==1), np.sum(data[:, -1]==0)
