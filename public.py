@@ -311,7 +311,6 @@ def showGridMetrics(grid, modelName, logger):
         round(results['mean_test_precision'][bestIndex], 4),
         round(results['mean_test_recall'][bestIndex], 4)
     ))
-    logger.info("best auc:{0}".format(bestAuc))
 
 def GBDT(X, Y, gbdtParams, treeParams, cv, logger):
     logger.info("training model with GBDTParams by GridSearchCV")

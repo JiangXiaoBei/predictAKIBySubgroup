@@ -24,18 +24,18 @@ def beginWork(home, logger):
         "learning_rate": [0.1]
     }
     treeParams = {
-        "max_depth": [10, 50],
-        "min_samples_split": [5, 10]
+        "max_depth": [10],
+        "min_samples_split": [5]
     }
-    firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 3, logger) # TODO 测试代码正确性，训练时cv改回10
+    firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 10, logger) # TODO 测试代码正确性，训练时cv改回10
 
     logger.info("first stage GBDT(with gbdt param) model info:")
     showGridMetrics(firstGrid, "GBDT", logger)
     logger.info("second stage(with tree params) GBDT model info:")
     showGridMetrics(secondGrid, "GBDT(best tree)", logger)
-    with open(baseModelMetricsPath, "w") as file:
+    with open(baseModelMetricsPath, "wb") as file:
         pickle.dump(secondGrid.scorer_, file)
-    with open(baseModelPath, "w") as file:
+    with open(baseModelPath, "wb") as file:
         pickle.dump(secondGrid.best_estimator_, file)
     logger.info("base model saved in {0}".format(baseModelPath))
     logger.info("metrics info of base model saved in {0}".format(baseModelMetricsPath))
@@ -55,3 +55,8 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("========== catch exception! ==========".center(CONSTANT.logLength, "="))
         logger.error(traceback.format_exc())
+
+"""
+笔记：
+    1. python3中使用pickle读写数据时候要用二进制模式"wb"、"rb"
+"""
