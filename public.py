@@ -299,7 +299,7 @@ def showDataInfo(dataArr, logger):
 
 def showGridMetrics(grid, modelName, logger):
     bestIndex = grid.best_index_
-    results = grid.cv_results_["mean_test_score"]
+    results = grid.cv_results_
     
     bestGbdtParams = grid.best_params_
     logger.info("best {0} parameter:{1}".format(modelName, bestGbdtParams))
