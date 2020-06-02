@@ -12,7 +12,8 @@ def beginWork(home, subgroupName, logger):
     constant = CONSTANT(home)
 
     subgroupsPath = os.path.join(home, subgroupName, "subgroups.pkl")
-    subgroups = pickle.load(subgroupsPath)
+    with open(subgroupsPath, "rb") as file:
+        subgroups = pickle.load(file)
     logger.info("load subgroup in {0}".format(subgroupsPath))
 
     dataPath = constant.getDataPath()
