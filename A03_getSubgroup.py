@@ -14,7 +14,7 @@ def beginWork(home, logger):
     X, Y = data[:, :-1], data[:, -1]
     size = X.shape[0]
 
-    subgroupSizes = [8, 16, 32, 64]
+    subgroupSizes = [4, 8, 16]
     cartModelDir = constant.getCartModelDir()
     shutil.rmtree(cartModelDir)
     os.makedirs(cartModelDir)

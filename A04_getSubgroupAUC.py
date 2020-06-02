@@ -47,7 +47,7 @@ def beginWork(home, subgroupName, logger):
         firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 3, logger)
         
         size = len(subgroupData)
-        sizeInfo = str(size) + "(" + str(float(size)/float(allDataSize)) + ")"
+        sizeInfo = str(size) + "(" + round(str(float(size)/float(allDataSize))) + ")"
         NOAKI, AKI = np.sum(subgroupData[:, -1]==0), np.sum(subgroupData[:, -1]==1)
         noaki_aki = str(NOAKI) + "/" + str(AKI)
         AKIRate, weight = round(AKI/size, 4), round(float(size)/float(allDataSize), 4)
