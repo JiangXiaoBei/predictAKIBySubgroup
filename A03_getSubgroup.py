@@ -1,6 +1,7 @@
 import os
 import traceback
 import pickle
+import shutil
 
 from public import *
 from sklearn.tree import DecisionTreeClassifier
@@ -15,10 +16,12 @@ def beginWork(home, logger):
 
     subgroupSizes = [8, 16, 32, 64]
     cartModelDir = constant.getCartModelDir()
+
     for subgroupSize in subgroupSizes:
         curCartModelDir = os.path.join(cartModelDir, "subgroup-"+str(subgroupSize))
-        if not os.path.exists(curCartModelDir):
-            os.mkdir(curCartModelDir)
+        if os.path.exists(curCartModelDir):
+            shutil.rmtree(curCartModelDir)
+        os.makedirs(curCartModelDir)
         dotFilePath = os.path.join(curCartModelDir, "dot.dot")
         paramsTxtPath = os.path.join(curCartModelDir, "params.txt")
         subgroupsSavedPath = os.path.join(curCartModelDir, "subgroups.pkl")
