@@ -17,7 +17,7 @@ def beginWork(home, subgroupName, logger):
         subgroups = pickle.load(file)
     logger.info("load subgroup in {0}".format(subgroupsPath))
 
-    dataPath = constant.getDataFilteredPath()
+    dataPath = constant.getDataPath()
     data, _ = loadData(dataPath, logger)
     allDataSize = len(data)
     akiSize, noAKISize = np.sum(data[:, -1]==1), np.sum(data[:, -1]==0)
@@ -27,7 +27,6 @@ def beginWork(home, subgroupName, logger):
         .format(data.shape[0], akiSize, round(akiRate, 4), noAKISize, round(noAKIRate, 4)))
 
     overallAUC, subgroupAUCs, subgroupWeights = 0.0, [], []
-    kfold3 = KFold(n_splits=3)
     logger.info("{0}{1}{2}{3}{4}{5}"
         .format("subgroupName".center(18), "size(rate)".center(14), "NOAKI/AKI".center(14), 
                 "AKI rate".center(14), "weight".center(10), "auc".center(8)))
@@ -37,14 +36,14 @@ def beginWork(home, subgroupName, logger):
         "learning_rate": [0.05, 0.1, 0.5]
     }
     treeParams = {
-        "max_depth": [3, 5, 10, 50],
-        "min_samples_split": [2, 5, 10]
+        "max_depth": [3, 5, 10],
+        "min_samples_split": [2, 5]
     }
     for subgroupName, subgroupItemIndex in subgroups.items():
         # 使用网格搜索，3折交叉验证
         subgroupData = data[np.array(subgroupItemIndex)]
         X, Y = subgroupData[:, :-1], subgroupData[:, -1]
-        firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 3, logger)
+        firstGrid, secondGrid = GBDT(X, Y, gbdtParams, treeParams, 5, logger)
         
         size = len(subgroupData)
         sizeInfo = str(size) + "(" + str(round(float(size)/float(allDataSize), 4)) + ")"
