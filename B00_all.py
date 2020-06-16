@@ -1,6 +1,7 @@
 import traceback
 import numpy as np
 import pandas as pd
+import pygame  # pip install pygame
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
@@ -45,6 +46,8 @@ class SDecision:
         self.maxDepth = 4
         self.overallAuc = 0.0
         self.sampleSize = 0
+        self.tree = None
+        self.trainFeatureSize = 1000        # 参与训练的特征数量（进行特征选择） 
 
     def predictSample(x, root):
         """预测节点x的类别（递归匹配节点）"""
@@ -60,7 +63,7 @@ class SDecision:
         """预测X，返回预测值以及所属叶子节点下标"""
         Y, indexs = []
         for x in X:
-            y, index = predictSample(x)
+            y, index = self.__predictSample(x)
             Y.append(y)
             indexs.append(index)
         return np.array(Y), np.array(indexs)
@@ -91,15 +94,13 @@ class SDecision:
         sampleIndexs = [i for i in range(0, len(self.samples))]
         root = TreeNode(sampleIndexs, auc, depth)
         logger.info("{}".format("begin createTree".center(50, "=")))
-        return threadPool.submit(self.__createTreeFrom, root, -1).result()
+        self.tree = self.__createTreeFrom(root, 0)
+        return self.tree
 
     def __getFilteredUnchangeableFeature(self, samples):
         """过滤出不可变特征名（如果划分后节点中只有1个类别或者存在某个类别）"""
         featureNames = samples.columns
-        targetPre = ["DEMO", "VITAL", "CCS"]
         result = []
-        minNodeSize = 2000
-        samplesSize = len(samples)
         for name in featureNames:
             prefix = name[: 3]
             if prefix=="DEM" or prefix=="VIT" or prefix=="CCS":
@@ -107,7 +108,7 @@ class SDecision:
                 if len(groupResult.size())==1:
                     continue
                 result.append(name)
-        return result
+        return result # TODO 为了测验，只取前20条
 
     def __createTreeFrom(self, node, parent):
         """由传入的节点产生一棵树（判断节点是否可以分割，如果可以分割则执行分割，否则为叶子节点（新建一个Treenode时默认是叶子节点））"""
@@ -119,10 +120,10 @@ class SDecision:
         node.label = 1 if np.sum(samples[:, -1]==1) > np.sum(samples[:, -1]==0) else 0
         node.parent = parent
 
-        splitable = True
+        splitable = False
         splitIndex, splitValue, subgroupInfoList = None, None, []
         if self.__splitable(node):
-            splitIndex, splitValue, subgroupInfoList = threadPool.submit(self.__doBestSplit, node).result()
+            splitIndex, splitValue, subgroupInfoList = self.__doBestSplit(node)
             splitable = False if (splitValue==None)or(len(subgroupInfoList)<2) else True
         if splitable: 
             node.isLeaf = False
@@ -133,14 +134,14 @@ class SDecision:
             for curValue, auc, subgroupIndexs in subgroupInfoList:
                 subNode = TreeNode(subgroupIndexs, auc, node.curDepth+1)
                 subNode = threadPool.submit(self.__createTreeFrom, subNode, node.index).result()
-                subNodeKey = self.__getSubNodeKeyBy(curValue, splitValue)
+                subNodeKey = self.__getSubNodeKeyBy(curValue, splitValue, isDispersed)
                 node.subNodes[subNodeKey] = subNode
-            logger.info("inner node {} info：auc-{}, size-{}, parentNode-{}, subNode-{}"
-                    .format(node.index, node.auc, node.sampleSize, node.__parent, [sn.index for sn in node.subNodes])
+            logger.info("inner node {} info -- auc：{}, size：{}, parentNode：{}, subNode：{}"
+                    .format(node.index, node.auc, node.sampleSize, node.parent, [sn.index for sn in node.subNodes])
             )
         else:
             self.overallAuc += float(node.sampleSize)/float(self.sampleSize)*node.auc
-            logger.info("leaf node {} info：auc-{}, size-{}, parentNode-{}".format(node.index, node.auc, node.sampleSize, node.__parent))
+            logger.info("leaf node {} info -- auc：{}, size：{}, parentNode：{}".format(node.index, node.auc, node.sampleSize, node.parent))
         return node
 
 
@@ -170,11 +171,11 @@ class SDecision:
 
     def __doBestSplit(self, node):
         """对node就行分割，返回所取分割特征下标、所取分割值、分割得到的子节点信息，更新节点的featurePath（subgroupInfo：curValue, auc, subgroups）"""
-        splitIndex, splitValue, subgroupInfoList = None, None, []
         usedFeaturesIndex = node.featurePath
         targetFeatureNames = list(set(self.unchangeableFeatureNames) - set(usedFeaturesIndex))
         
         maxOverallAuc = -np.inf
+        splitIndex, splitValue, subgroupInfoList = None, None, []
         for featureName in targetFeatureNames:
             featureValue = self.__getBestValue(node.samplesIndex, featureName)
             result = self.__splitDataByFeature(node.samplesIndex, featureName, featureValue)
@@ -220,10 +221,10 @@ class SDecision:
         划分的过程中，如果某个子节点的样本数小于minSamplesLeaf，则和周围的节点进行合并
         """
         result = {}
-        overallAuc = 0.0
         subNodeInfos = []
         result['splitable'] = True
 
+        # 将sampleIndexs按照featureName、featureValues分成不同的子节点
         subNodeMap = {}
         isDiscrete = isinstance(featureValues, set)
         if  isDiscrete:
@@ -258,6 +259,8 @@ class SDecision:
                 key = 'gt' if self.samples.iloc[sampleIndex][featureName] > featureValues else 'lt'
                 subNodeMap[key].append(sampleIndex)
 
+        # 对得到的子节点进行建模，并计算全部子节点的加权auc
+        overallAuc = 0.0
         for subNodeIndexs in subNodeMap.values():
             if len(subNodeIndexs) < self.minSamplesLeaf:
                 result['splitable'] = False
@@ -266,9 +269,9 @@ class SDecision:
             curValue = self.samples.iloc[subNodeIndexs[0]][featureName]
             samples = self.processedsamples.iloc[subNodeIndexs].values   # 注意，这里用的是预处理后的数据
             X, Y = samples[:, :-1], samples[:, -1]
-            X = SelectKBest(chi2, k=500).fit_transform(X, Y)
-            auc = getAUCByGBDT(X, Y)
-            overallAuc += auc * float(len(X))/float(len(sampleIndexs))
+            X = SelectKBest(chi2, k=self.trainFeatureSize).fit_transform(X, Y)
+            auc = round(threadPool.submit(getAUCByGBDT, X, Y).result(), 4)
+            overallAuc += auc * float(len(subNodeIndexs))/float(len(sampleIndexs))
             subNodeInfos.append([curValue, auc, subNodeIndexs])                # 取出来的顺序也是：curValue, auc, subNodeIndexs
 
         result['subNodeInfos'] = subNodeInfos
@@ -290,7 +293,7 @@ class SDecision:
         return -(akiRate*np.log2(akiRate) + noAkiRate*np.log2(noAkiRate))
     
 
-    def __getSubNodeKeyBy(curValue, splitValue, isDispersed):
+    def __getSubNodeKeyBy(self, curValue, splitValue, isDispersed):
         """
         获取代表该子节点的key（在预测时需要用到，直接通过key来判断需要跳转到哪个子节点）
 
@@ -310,14 +313,10 @@ def getAUCByGBDT(X, Y):
     param = {
         "n_estimators": 100, 
         "learning_rate": 0.1,
-        "subsample": 0.8,
+        "subsample": 0.9,
         "loss": 'deviance',
-        "max_features": 'sqrt',
-        "max_depth": 3,
-        "min_samples_split": 10,
-        "min_samples_leaf": 3,
-        "min_weight_fraction_leaf": 0,
-        "random_state": 10        
+        "max_depth": 10,
+        "min_samples_leaf": 3,    
     }
     XTrain, XTest, YTrain, YTest = train_test_split(X, Y, test_size=0.3)
 
@@ -337,9 +336,6 @@ def showLeaf(tree):
         ))
     for subTree in tree.subNodes.values():
         showTree(subTree)
-
-
-import pygame  # pip install pygame
 
 # 貌似只能播放单声道音乐，可能是pygame模块限制
 def playMusic(filename, loops=0, start=0.0, value=1.0):
