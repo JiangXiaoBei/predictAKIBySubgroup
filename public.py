@@ -126,7 +126,7 @@ class DataProccessor:
     def __getPreprocessedDataFrom(self, aPatientRawData):
         # 获取发病日期。([6]表示提取第7个大类特征，[0]表示第1条记录)
         label, firstAKITime = aPatientRawData.T[6][0] 
-        firstAKITime = float(firstAKITime)
+        firstAKITime = float(firstAKITime) - 1 # 因为要提前一天预测，因此减去1
         label = 1 if label!="0" else 0
         
         [demo, vital, lab, comorbidity, procedure, med, AKI_label] = [item for item in aPatientRawData.T]
