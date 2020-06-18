@@ -7,6 +7,7 @@ from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
+from sklearn.model_selection import GridSearchCV
 from concurrent.futures import ThreadPoolExecutor
 from public import *
 
@@ -43,11 +44,11 @@ class SDecision:
         self.unchangeableFeatureNames = []
         self.minSamplesLeaf = 200
         self.minSampleSplit = 400
-        self.maxDepth = 4
+        self.maxDepth = 20
         self.overallAuc = 0.0
         self.sampleSize = 0
         self.tree = None
-        self.trainFeatureSize = 1000        # 参与训练的特征数量（进行特征选择） 
+        self.trainFeatureSize = 500        # 参与训练的特征数量（进行特征选择） 
 
     def predictSample(x, root):
         """预测节点x的类别（递归匹配节点）"""
@@ -88,6 +89,8 @@ class SDecision:
         self.processedsamples.drop(markedCols, axis=1, inplace=True)
         self.processedsamples = pd.concat([appendData, self.processedsamples], axis=1)
         self.unchangeableFeatureNames = self.__getFilteredUnchangeableFeature(self.samples)
+        with open("/home/xinhos/PythonProjects/predictAKIBySubgroup/savedData/processedSample.pkl", "wb") as file:
+            pickle.dump(self.processedsamples, file)
 
         # 创建树
         depth = 1
@@ -108,7 +111,12 @@ class SDecision:
                 if len(groupResult.size())==1:
                     continue
                 result.append(name)
-        return result # TODO 为了测验，只取前20条
+        a = result[: 15]
+        b = result[40: 45]
+        c = result[60: 65]
+        a.extend(b)
+        a.extend(c)
+        return a # TODO 为了测验，只取前20条
 
     def __createTreeFrom(self, node, parent):
         """由传入的节点产生一棵树（判断节点是否可以分割，如果可以分割则执行分割，否则为叶子节点（新建一个Treenode时默认是叶子节点））"""
@@ -127,20 +135,31 @@ class SDecision:
             splitable = False if (splitValue==None)or(len(subgroupInfoList)<2) else True
         if splitable: 
             node.isLeaf = False
-            node.isDispersed = True if splitValue=="" else False
+            node.isDispersed = True if isinstance(splitValue, set) else False
             node.splitIndex = splitIndex
             node.splitValue = splitValue
 
+            subNodeKey = None
             for curValue, auc, subgroupIndexs in subgroupInfoList:
                 subNode = TreeNode(subgroupIndexs, auc, node.curDepth+1)
                 subNode = threadPool.submit(self.__createTreeFrom, subNode, node.index).result()
-                subNodeKey = self.__getSubNodeKeyBy(curValue, splitValue, isDispersed)
+                try:
+                    subNodeKey = self.__getSubNodeKeyBy(curValue, splitValue, node.isDispersed)
+                except Exception as identifier:
+                    print(type(curValue), curValue)
+                    print(type(splitValue), splitValue)
+                    print(node.isDispersed)
                 node.subNodes[subNodeKey] = subNode
             logger.info("inner node {} info -- auc：{}, size：{}, parentNode：{}, subNode：{}"
-                    .format(node.index, node.auc, node.sampleSize, node.parent, [sn.index for sn in node.subNodes])
+                    .format(node.index, node.auc, node.sampleSize, node.parent, [sn.index for sn in node.subNodes.values()])
             )
         else:
+            data = self.processedsamples.iloc[node.samplesIndex].values
+            X, Y = data[:, :-1], data[:, -1]
+            node.auc = getAUCByGridSearch(X, Y)
             self.overallAuc += float(node.sampleSize)/float(self.sampleSize)*node.auc
+            with open("/home/xinhos/PythonProjects/predictAKIBySubgroup/savedData/subgroup-"+str(node.index)+"-"+str(node.sampleSize)+".pkl", "wb") as file:
+                pickle.dump(node.samplesIndex, file)
             logger.info("leaf node {} info -- auc：{}, size：{}, parentNode：{}".format(node.index, node.auc, node.sampleSize, node.parent))
         return node
 
@@ -157,7 +176,7 @@ class SDecision:
         samples = self.samples.iloc[node.samplesIndex]
         notPureNode, gtMinSampleSplit, ltMaxDepth = False, False, False
         
-        if node.akiSize<node.sampleSize and node.noAkiSize<node.sampleSize:
+        if 0<node.noAkiSize and node.noAkiSize<node.sampleSize:
             notPureNode = True
 
         if node.sampleSize >= self.minSampleSplit:
@@ -189,8 +208,7 @@ class SDecision:
         return splitIndex, splitValue, subgroupInfoList
 
     def __getBestValue(self, sampleIndexs, featureName):
-        """传入样本名、特征，返回该特征下划分的最佳值"""
-        
+        """传入样本名、特征，返回该特征下划分的最佳值（离散变量则是该变量的全部取值，连续值变量则是计算信息增益最大的那个）"""
         isDiscrete = isinstance(self.samples.iloc[sampleIndexs[0]][featureName], str) 
         if  isDiscrete:
             featureValues = set(self.samples.iloc[:][featureName])
@@ -253,13 +271,14 @@ class SDecision:
                 subNodeMap[targetKey].extend(subNodeMap[nextTargetKey])   
                 subNodeMap[nextTargetKey] = subNodeMap[targetKey]
                 keys.remove(targetKey)
+                del subNodeMap[targetKey]
         else:
             subNodeMap['gt'], subNodeMap['lt'] = [], []
             for sampleIndex in sampleIndexs:
                 key = 'gt' if self.samples.iloc[sampleIndex][featureName] > featureValues else 'lt'
                 subNodeMap[key].append(sampleIndex)
 
-        # 对得到的子节点进行建模，并计算全部子节点的加权auc
+        # 对得到的子节点进行建模，并计算全部子节点的加权auc（得到的子节点中只要有一个小于minSamplesLeaf，则不分割）
         overallAuc = 0.0
         for subNodeIndexs in subNodeMap.values():
             if len(subNodeIndexs) < self.minSamplesLeaf:
@@ -302,7 +321,7 @@ class SDecision:
         if isDispersed:
             key = curValue
         else:
-            key = "gt" if splitValue>root.splitValue else "lt"
+            key = "gt" if curValue>splitValue else "lt"
         return key
 
 
@@ -315,13 +334,29 @@ def getAUCByGBDT(X, Y):
         "learning_rate": 0.1,
         "subsample": 0.9,
         "loss": 'deviance',
-        "max_depth": 10,
+        "max_features": "sqrt",
+        "max_depth": 3,
+        "min_samples_split": 10,
         "min_samples_leaf": 3,    
     }
     XTrain, XTest, YTrain, YTest = train_test_split(X, Y, test_size=0.3)
 
     clf = GradientBoostingClassifier(**param).fit(XTrain, YTrain)
     return roc_auc_score(YTest, clf.predict(XTest)) 
+
+def getAUCByGridSearch(X, Y):
+    gbdtParams = {
+        "n_estimators": [300],
+        "learning_rate": [0.1],
+        "max_depth": [30],
+        "max_features": ["sqrt"],
+        "min_samples_split": [5]
+    }
+    grid = GridSearchCV(estimator=GradientBoostingClassifier(), param_grid=gbdtParams,
+                n_jobs=-1, scoring='roc_auc', cv=5)
+    grid.fit(X, Y)
+    return grid.best_score_
+
 
 def toDot(tree):
     pass
@@ -360,6 +395,25 @@ def playMusic(filename, loops=0, start=0.0, value=1.0):
             if flag:
                 pygame.mixer.music.stop()  # 停止播放
                 break
+def showTree(tree):
+    header = [0, 0, 0]
+    header[0] = "digraph Tree {"
+    header[1] = "node [shape=box, style=\"filled, rounded\", color=\"black\", fontname=helvetica] ;"
+    header[2] = "edge [fontname=helvetica] ;"
+    tail = "}"
+    
+    parentNode = None
+    for key, node in tree.subNodes.items():
+        nodeInfo. edgeInfo = None, None
+        if node.isLeaf:
+            nodeInfo = str(node.index) + " [label=<"+node.splitIndex+"<br/>auc="+round(node.auc, 4)+"<br/>samples="+node.sampleSize+"<br/>aki rate="+node.akiRate+">, fillcolor=\"#208899\"]"
+            edgeInfo = str(parentNode.index) + " -> " + node.index + " [headlabel=\""+ key +"\"]"
+        else:
+            nodeInfo = node.index + "[auc="+round(node.auc, 4)+"<br/>samples="+node.sampleSize+"<br/>aki rate="+node.akiRate+">, fillcolor=\"#EA9A60\"]"
+
+
+def getNodeInfo():
+    pass
 
 
 threadPool = ThreadPoolExecutor(max_workers=8, thread_name_prefix="thread_")
@@ -368,13 +422,17 @@ constant = CONSTANT(home)
 logFilePath = os.path.join(constant.getLogDir(), "B00-split-tree.log")
 allLogPath = os.path.join(constant.getLogDir(), "B00-allLog.log")
 logger = getLogger(logFilePath, allLogPath)
+
+import pickle
 if __name__ == "__main__":
     try:
         np.seterr(invalid='ignore')
         samples = pd.read_pickle("/home/xinhos/PythonProjects/predictAKIBySubgroup/savedData/filteredSamples.pkl")
         logger.info("{}".format("load data...".center(50, "=")))
-        tree = SDecision()
-        tree.fitBySamples(samples, 1)
+        tree = SDecision().fitBySamples(samples, 1)
+        with open("/home/xinhos/PythonProjects/predictAKIBySubgroup/savedData/treeModel.pkl", "wb") as file:
+            pickle.dump(tree, file)
+        showTree(tree)
         logger.info(tree.overallAuc)
     except Exception as e:
         logger.error("========== catch exception! ==========".center(CONSTANT.logLength, "="))
